@@ -1,5 +1,7 @@
+import os
 from flask import Flask,make_response, jsonify
 from flask_apscheduler import APScheduler
+from TushareConfig import base_stock_one_row_list
 
 
 # 配置定时任务
@@ -32,11 +34,11 @@ app = Flask(__name__)
 app.config.from_object(Config())  # 为实例化的flask引入配置
 
 
-# 获取股票列表
-# 获取基础信息数据，包括股票代码、名称、上市日期、退市日期等
-@app.route('/getBasicStock')
+# 获取股票列表,用于前端模糊匹配
+@app.route('/getBasicStock', methods=['GET', 'POST'])
 def basic_stock():
-    response = make_response(jsonify({'test': 'good'}, 403))
+    data = base_stock_one_row_list(os.path.dirname(app.instance_path).replace('\\', '/'))
+    response = make_response(jsonify({'CodeStatus': 200, 'BasicStockOneRowList': data.tolist()}))
     return response
 
 
