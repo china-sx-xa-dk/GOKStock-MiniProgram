@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
-#encoding: utf-8
+# encoding: utf-8
 import tushare as ts
 import numpy as np
 import pandas as pd
 import os.path
 from io import BytesIO
 import base64
-import matplotlib.pyplot as plt  #  提供类matlab里绘图框架
+import matplotlib.pyplot as plt  # 提供类matlab里绘图框架
 from flask import jsonify
 
 
@@ -63,18 +63,19 @@ def calculate_relation(_stock_start_data
                        ):
     # 通过接口获取时间段内每一天的收盘价
     _df_first_stock = pro.daily(ts_code=str(_first_stock_code), start_date=str(_stock_start_data), end_date=str(_stock_end_data))
+    print(_df_first_stock)
     _df_second_stock = pro.daily(ts_code=str(_second_stock_code), start_date=str(_stock_start_data), end_date=str(_stock_end_data))
+    print(_df_second_stock)
     df = pd.concat([_df_first_stock.trade_date, _df_first_stock.close, _df_second_stock.close], axis=1, keys=['trade_date', _first_show_code, _second_show_code])  # 合并
     df.ffill(axis=0, inplace=True)  # 填充缺失数据
-    # df.to_csv('md_gl.csv')    #保存数据到.csv文件
+    # df.to_csv('md_gl.csv')    # 保存数据到.csv文件
     # pearson方法计算相关性
     corr = df.corr(method='pearson', min_periods=1)
-    # 初始化相关性的值 相关性一个为1另一个为正常相关性 获取非1的数据
-    relation_result = str
-    if corr[_first_show_code][0] == 1:
-        relation_result = corr[_first_show_code][1]
+    print(corr)
+    if corr[_first_show_code][_first_show_code] == 1:
+        relation_result = corr.loc[_first_show_code][_second_show_code]
     else:
-        relation_result = corr[_second_show_code][0]
+        relation_result = corr.loc[_first_show_code][_first_show_code]
     # 设置图像为600,650的像素
     df.plot(figsize=(6, 6.5))
     # plt.savefig('md_gl.png')  # 保存图像
@@ -86,3 +87,4 @@ def calculate_relation(_stock_start_data
     plt.close()
     # 构建json数据
     return jsonify({'first_code': _first_show_code, 'second_code': _second_show_code, 'first_name': _first_show_name, 'second_name': _second_show_name, 'relation_result': relation_result, 'base64': save_file_base64, 'start_data': _stock_start_data, 'end_data': _stock_end_data})
+

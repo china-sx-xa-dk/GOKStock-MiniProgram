@@ -1,40 +1,47 @@
 #! /usr/bin/env python3
-#encoding: utf-8
+# encoding: utf-8
 import os
 from flask import Flask,make_response, jsonify
 from flask_apscheduler import APScheduler
-from TushareConfig import base_stock_one_row_list, calculate_relation, read_base_stock
+from TushareConfig import base_stock_one_row_list, calculate_relation, read_base_stock, refresh_base_stock
 import datetime
+# 设置定时器默认参数
+from apscheduler.schedulers.background import BackgroundScheduler
+scheduler = APScheduler(BackgroundScheduler(timezone="Asia/Shanghai"))
 
 
 # 配置定时任务
 class Config(object):  # 创建配置，用类
     # 任务列表
     JOBS = [
-        # {  # 第一个任务
-        # 'id': 'job1',
-        # 'func': '__main__:job_1',
-        # 'args': (1, 2),
-        # 'trigger': 'cron', # cron表示定时任务
-        # 'hour': 19,
-        # 'minute': 27
-        # },
-        {  # 第二个任务，每隔5S执行一次
-            'id': 'job2',
-            'func': '__main__:method_test',  # 方法名
-            'args': (1, 2),  # 入参
-            'trigger': 'interval',  # interval表示循环任务
-            'seconds': 5,
+        {  # 第一个任务
+            'id': 'job1',
+            'func': '__main__:scheduler_refresh_base_stock',
+            'args': (),
+            'trigger': 'cron',  # cron表示定时任务 interval 循环任务
+            'hour': 1   # 每天的第一个小时
         }
     ]
+    # 设定时区
+    SCHEDULER_TIMEZONE = 'Asia/Shanghai'
+    SCHEDULER_API_ENABLED = True
 
 
-def method_test(a, b):
-    print(a + b)
+def scheduler_refresh_base_stock():
+    refresh_base_stock(os.path.dirname(app.instance_path).replace('\\', '/') + '/csv/stock_basic.csv')
 
 
 app = Flask(__name__)
 app.config.from_object(Config())  # 为实例化的flask引入配置
+
+
+# 主动刷新股票列表
+# demo:http://127.0.0.1:8080/refreshByHead
+@app.route('/refreshByHead', methods=['POST'])
+def get_basic_stock():
+    data = base_stock_one_row_list(os.path.dirname(app.instance_path).replace('\\', '/'))
+    response = make_response(jsonify({'CodeStatus': 200, 'BasicStockOneRowList': data.tolist()}))
+    return response
 
 
 # 获取股票列表,用于前端模糊匹配
@@ -71,14 +78,15 @@ def get_calculate_relation_result(_first_stock, _second_stock, _time_type):
 
     # 计算用户选择后的日期
     _now_time = datetime.datetime.now()
-    _end_time = _now_time.strftime('%Y-%m-%d')    # 结束日期
+    _end_time = _now_time.strftime('%Y%m%d')    # 结束日期
     # 选择要提前的天数
     _calculate_time = _now_time + datetime.timedelta(days=_day_cut)
-    _start_time = _calculate_time.strftime('%Y-%m-%d')    # 开始日期
+    _start_time = _calculate_time.strftime('%Y%m%d')    # 开始日期
     # 获取股票列表查询到股票的名称
     _data = read_base_stock(os.path.dirname(app.instance_path).replace('\\', '/'))
-    _first_stock_name = _data[_data.ts_code == _first_tushare_stock_code].name[0]
-    _second_stock_name = _data[_data.ts_code == _second_tushare_stock_code].name[1]
+    _data.index = _data['ts_code']
+    _first_stock_name = _data.loc[_first_tushare_stock_code]['name']
+    _second_stock_name = _data.loc[_second_tushare_stock_code]['name']
     # 进行两只股票的相关型和绘图
     return_data = calculate_relation(_start_time, _end_time, _first_tushare_stock_code, _second_tushare_stock_code, _first_stock, _second_stock, _first_stock_name, _second_stock_name)
     return make_response(return_data)
