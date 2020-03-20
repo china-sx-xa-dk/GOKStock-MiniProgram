@@ -38,9 +38,9 @@ app.config.from_object(Config())  # 为实例化的flask引入配置
 # 主动刷新股票列表
 # demo:http://127.0.0.1:8080/refreshByHead
 @app.route('/refreshByHead', methods=['POST'])
-def get_basic_stock():
-    data = base_stock_one_row_list(os.path.dirname(app.instance_path).replace('\\', '/'))
-    response = make_response(jsonify({'CodeStatus': 200, 'BasicStockOneRowList': data.tolist()}))
+def refresh_by_head():
+    scheduler_refresh_base_stock
+    response = make_response(jsonify({'CodeStatus': 200}))
     return response
 
 
