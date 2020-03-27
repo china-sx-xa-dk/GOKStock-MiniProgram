@@ -83,7 +83,7 @@ def calculate_relation(_stock_start_data
     save_file = BytesIO()
     plt.savefig(save_file, format='png')
     # 转换base64并以utf8格式输出
-    save_file_base64 = base64.b64encode(save_file.getvalue()).decode('utf8')
+    save_file_base64 = 'data:image/png;base64,' + base64.b64encode(save_file.getvalue()).decode('utf8')
     plt.close()
     # 构建json数据
     return jsonify({'first_code': _first_show_code, 'second_code': _second_show_code, 'first_name': _first_show_name, 'second_name': _second_show_name, 'relation_result': relation_result, 'base64': save_file_base64, 'start_data': _stock_start_data, 'end_data': _stock_end_data})
